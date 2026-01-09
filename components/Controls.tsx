@@ -30,15 +30,71 @@ interface ControlsProps {
 }
 
 const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'photoUrl' | 'logoUrl') => {
+
+  // Görseli yeniden boyutlandıran (Resize) yardımcı fonksiyon
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 180; // İstenilen maksimum genişlik
+          
+          let width = img.width;
+          let height = img.height;
+
+          // En-boy oranını koruyarak boyutlandırma
+          if (width > MAX_WIDTH) {
+            height = (MAX_WIDTH / width) * height;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            // Arka planı beyaz yap (PNG transparanlığı JPEG'e dönüşürken siyah olmasın diye)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // JPEG formatında ve 0.85 kalitesinde sıkıştırılmış base64 döndür
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(dataUrl);
+          } else {
+            // Fallback: Canvas çalışmazsa orijinalini döndür
+            resolve(e.target?.result as string);
+          }
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photoUrl' | 'logoUrl') => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 51200) { // 50KB uyarısı
-        if (!confirm('Bu görsel çok büyük. Gmail "İmza çok uzun" hatası verebilir. Yine de devam etmek istiyor musunuz? (Link kullanmanız önerilir)')) return;
+      try {
+        if (field === 'photoUrl') {
+          // Profil fotoğrafı için resize ve optimizasyon (Gmail limitleri için)
+          const resizedBase64 = await resizeImage(file);
+          onUpdate({ [field]: resizedBase64 });
+        } else {
+          // Logo için orijinal kalite (PNG şeffaflığı ve netliği bozulmasın diye)
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            if (ev.target?.result) {
+              onUpdate({ [field]: ev.target.result as string });
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      } catch (error) {
+        console.error("Görsel işlenirken hata oluştu:", error);
       }
-      const reader = new FileReader();
-      reader.onloadend = () => onUpdate({ [field]: reader.result as string });
-      reader.readAsDataURL(file);
     }
   };
 
@@ -54,7 +110,9 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <label className="text-[10px] font-bold text-slate-500 uppercase">Profil Resmi</label>
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors">
               <img src={data.photoUrl || 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2">YÜKLE (GMAIL İÇİN ÖNERİLMEZ)</div>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
+                Dosya Seç (Oto-Resize)
+              </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'photoUrl')} />
             </div>
           </div>
@@ -62,7 +120,9 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <label className="text-[10px] font-bold text-slate-500 uppercase">Logo</label>
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors p-2">
               {data.logoUrl ? <img src={data.logoUrl} className="max-w-full max-h-full object-contain" /> : <i className="fas fa-plus text-slate-600"></i>}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2">YÜKLE (GMAIL İÇİN ÖNERİLMEZ)</div>
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
+                Dosya Seç (Orijinal)
+              </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'logoUrl')} />
             </div>
           </div>

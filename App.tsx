@@ -124,8 +124,8 @@ const App: React.FC = () => {
                   {copySuccess ? 'Kopyalandı!' : 'İmzayı Kopyala'}
                 </button>
                 {isBase64 && (
-                  <span className="text-[10px] text-amber-600 font-bold animate-pulse text-center">
-                    ⚠️ Yüklü görsel karakter sayısını artırıyor!
+                  <span className="text-[10px] text-emerald-600 font-bold animate-pulse text-center">
+                    ✨ Görseller İşlendi (Profil: Optimize, Logo: Orijinal)
                   </span>
                 )}
               </div>
@@ -145,11 +145,11 @@ const App: React.FC = () => {
                 <i className="fas fa-exclamation-triangle text-xs" style={{ color: data.brandColor }}></i>
               </div>
               <div className="text-xs">
-                <p className="font-bold mb-1">Görseller Görünmüyorsa:</p>
+                <p className="font-bold mb-1">Görseller Hakkında:</p>
                 <ul className="list-disc ml-4 space-y-1 text-slate-600 font-medium">
-                  <li>Eklediğiniz linkin <b>doğrudan resim dosyasına</b> (.jpg, .png gibi) gittiğinden emin olun.</li>
-                  <li>Google Drive linkleri doğrudan resim linki değildir, çalışmayabilir.</li>
-                  <li>Linkler mutlaka <b>https://</b> ile başlamalıdır.</li>
+                  <li><b>Profil fotoğrafı</b> otomatik olarak 180px genişliğe küçültülür (Base64 optimizasyonu).</li>
+                  <li><b>Logo</b> dosyanızın kalitesi ve şeffaflığı korunması için orijinal haliyle yüklenir.</li>
+                  <li>Eğer logonuz çok büyükse (MB boyutunda) imzanızın yüklenmesi yavaşlayabilir.</li>
                 </ul>
               </div>
             </div>
