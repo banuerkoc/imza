@@ -7,14 +7,14 @@ import Navbar from './components/Navbar';
 
 const App: React.FC = () => {
   const [data, setData] = useState<SignatureData>({
-    name: 'Anna Sumiyati',
-    title: 'Graphic Designer',
-    description: 'Yaratıcı çözümler sunan profesyonel tasarımcı.',
-    phone1: '0555 123 45 67',
+    name: 'Banu Erkoç',
+    title: 'Kurumsal İletişim ve Marka Yöneticisi',
+    description: 'Proaktif Güvenlik Çözümleri',
+    phone1: '0534 642 14 52',
     phone2: '',
-    email: 'info@de-osgb.com',
-    website: 'www.de-osgb.com',
-    addressLine1: 'İstanbul, Türkiye',
+    email: 'info@deosgb.com.tr',
+    website: 'www.deosgb.com.tr',
+    addressLine1: 'Denizli, Türkiye',
     addressLine2: '',
     photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200',
     logoUrl: '', 
