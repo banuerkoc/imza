@@ -10,7 +10,7 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
   const bColor = data.brandColor || "#FDCD1F";
   const dGray = "#333333";
   const lGray = "#666666";
-  const bgBrokenWhite = "#FAFAFA"; // Kırık beyaz tonu
+  const bgBrokenWhite = "#FAFAFA"; 
   const nameParts = data.name.trim().split(' ');
   const fName = nameParts[0] || '';
   const lName = nameParts.slice(1).join(' ');
@@ -92,7 +92,7 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                       </tbody>
                     </table>
 
-                    {/* DİKEY AYRAÇ (Mobilde boşluk olur) */}
+                    {/* DİKEY AYRAÇ */}
                     <table align="left" cellPadding="0" cellSpacing="0" border={0} style={{ borderCollapse: 'collapse' }}>
                       <tbody>
                         <tr>
@@ -150,9 +150,8 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                           </td>
                         </tr>
                       </tbody>
-                    </tbody>
-                  </table>
-
+                    </table>
+                  </td>
                 </tr>
               </tbody>
             </table>
