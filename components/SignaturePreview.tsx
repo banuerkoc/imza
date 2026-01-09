@@ -30,15 +30,15 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
   const photoSrc = data.photoUrl || 'https://placehold.co/160x220/f4f4f4/333333.png?text=Photo';
 
   return (
-    <table cellPadding="0" cellSpacing="0" border={0} style={{ width: '100%', maxWidth: '480px', fontFamily: 'Arial, Helvetica, sans-serif', borderCollapse: 'collapse', backgroundColor: bgBrokenWhite }}>
+    <table cellPadding="0" cellSpacing="0" style={{ width: '100%', maxWidth: '480px', fontFamily: 'Arial, Helvetica, sans-serif', borderCollapse: 'collapse', backgroundColor: bgBrokenWhite, border: '0' }}>
       <tbody>
         <tr>
           <td style={{ verticalAlign: 'top' }}>
-            <table cellPadding="0" cellSpacing="0" border={0} width="100%" style={{ borderCollapse: 'collapse' }}>
+            <table cellPadding="0" cellSpacing="0" width="100%" style={{ borderCollapse: 'collapse', border: '0' }}>
               <tbody>
                 <tr>
                   {/* SOSYAL MEDYA ŞERİDİ */}
-                  <td width="30" bgcolor={bColor} align="center" valign="middle" style={{ padding: '10px 0' }}>
+                  <td width="30" align="center" style={{ padding: '10px 0', verticalAlign: 'middle', backgroundColor: bColor }}>
                     {[
                       { i: 'yt', l: data.socials.youtube },
                       { i: 'ig', l: data.socials.instagram },
@@ -46,11 +46,11 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                     ].map((s, idx) => (
                       <div key={idx} style={{ padding: '4px 0' }}>
                         <a href={s.l && s.l !== '#' ? s.l : '#'} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
-                          <table cellPadding="0" cellSpacing="0" border={0} bgcolor="#ffffff" style={{ borderRadius: '4px' }}>
+                          <table cellPadding="0" cellSpacing="0" style={{ borderRadius: '4px', backgroundColor: '#ffffff', border: '0' }}>
                             <tbody>
                               <tr>
-                                <td align="center" valign="middle" width="18" height="18">
-                                  <img src={getIcon(s.i)} width="12" height="12" border={0} style={{ display: 'block' }} alt={s.i} />
+                                <td align="center" width="18" height="18" style={{ verticalAlign: 'middle' }}>
+                                  <img src={getIcon(s.i)} width="12" height="12" style={{ display: 'block', border: '0' }} alt={s.i} />
                                 </td>
                               </tr>
                             </tbody>
@@ -64,23 +64,23 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                   <td style={{ padding: '10px' }}>
                     
                     {/* ÜST BLOK: FOTOĞRAF + İSİM */}
-                    <table align="left" cellPadding="0" cellSpacing="0" border={0} style={{ borderCollapse: 'collapse', marginBottom: '10px' }}>
+                    <table align="left" cellPadding="0" cellSpacing="0" style={{ borderCollapse: 'collapse', marginBottom: '10px', border: '0' }}>
                       <tbody>
                         <tr>
-                          <td width="105" valign="middle">
-                            <table cellPadding="0" cellSpacing="0" border={0} bgcolor={bColor} style={{ borderTopRightRadius: '50px', borderBottomRightRadius: '50px' }}>
+                          <td width="105" style={{ verticalAlign: 'middle' }}>
+                            <table cellPadding="0" cellSpacing="0" style={{ borderTopRightRadius: '50px', borderBottomRightRadius: '50px', backgroundColor: bColor, border: '0' }}>
                               <tbody>
                                 <tr>
                                   <td style={{ padding: '4px 4px 4px 0' }}>
                                     <div style={{ width: '80px', height: '110px', borderTopRightRadius: '45px', borderBottomRightRadius: '45px', overflow: 'hidden', backgroundColor: '#eeeeee' }}>
-                                      <img src={photoSrc} width="80" height="110" border={0} style={{ display: 'block' }} alt="Profile" />
+                                      <img src={photoSrc} width="80" height="110" style={{ display: 'block', border: '0' }} alt="Profile" />
                                     </div>
                                   </td>
                                 </tr>
                               </tbody>
                             </table>
                           </td>
-                          <td valign="middle" style={{ padding: '0 10px' }}>
+                          <td style={{ padding: '0 10px', verticalAlign: 'middle' }}>
                             <div style={{ fontSize: '15px', fontWeight: 'bold', color: dGray, lineHeight: '18px' }}>
                               {fName} <span style={{ color: bColor }}>{lName}</span>
                             </div>
@@ -93,10 +93,10 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                     </table>
 
                     {/* DİKEY AYRAÇ */}
-                    <table align="left" cellPadding="0" cellSpacing="0" border={0} style={{ borderCollapse: 'collapse' }}>
+                    <table align="left" cellPadding="0" cellSpacing="0" style={{ borderCollapse: 'collapse', border: '0' }}>
                       <tbody>
                         <tr>
-                          <td width="1" bgcolor={bColor} style={{ padding: '0' }}>
+                          <td width="1" style={{ padding: '0', backgroundColor: bColor }}>
                             <div style={{ width: '1px', height: '80px', fontSize: '1px' }}>&nbsp;</div>
                           </td>
                           <td width="15" style={{ fontSize: '1px' }}>&nbsp;</td>
@@ -105,13 +105,13 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                     </table>
 
                     {/* ALT BLOK: LOGO + İLETİŞİM */}
-                    <table align="left" cellPadding="0" cellSpacing="0" border={0} style={{ borderCollapse: 'collapse' }}>
+                    <table align="left" cellPadding="0" cellSpacing="0" style={{ borderCollapse: 'collapse', border: '0' }}>
                       <tbody>
                         <tr>
-                          <td valign="middle">
+                          <td style={{ verticalAlign: 'middle' }}>
                             <div style={{ paddingBottom: '10px' }}>
                               {data.logoUrl ? (
-                                <img src={data.logoUrl} border={0} style={{ display: 'block', maxHeight: '30px', maxWidth: '130px' }} alt="Logo" />
+                                <img src={data.logoUrl} style={{ display: 'block', maxHeight: '30px', maxWidth: '130px', border: '0' }} alt="Logo" />
                               ) : (
                                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: dGray }}>
                                   <span style={{ color: bColor }}>De</span>OSGB
@@ -124,15 +124,15 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                               { i: 'em', t: [data.email, data.website] },
                               { i: 'ad', t: [data.addressLine1] }
                             ].map((item, idx) => (
-                              <table key={idx} cellPadding="0" cellSpacing="0" border={0} style={{ marginBottom: '4px', borderCollapse: 'collapse' }}>
+                              <table key={idx} cellPadding="0" cellSpacing="0" style={{ marginBottom: '4px', borderCollapse: 'collapse', border: '0' }}>
                                 <tbody>
                                   <tr>
-                                    <td width="18" valign="top">
-                                      <table cellPadding="0" cellSpacing="0" border={0} bgcolor={bColor} style={{ borderRadius: '50%' }}>
+                                    <td width="18" style={{ verticalAlign: 'top' }}>
+                                      <table cellPadding="0" cellSpacing="0" style={{ borderRadius: '50%', backgroundColor: bColor, border: '0' }}>
                                         <tbody>
                                           <tr>
-                                            <td align="center" valign="middle" width="16" height="16">
-                                              <img src={getIcon(item.i)} width="10" height="10" border={0} style={{ display: 'block' }} alt={item.i} />
+                                            <td align="center" width="16" height="16" style={{ verticalAlign: 'middle' }}>
+                                              <img src={getIcon(item.i)} width="10" height="10" style={{ display: 'block', border: '0' }} alt={item.i} />
                                             </td>
                                           </tr>
                                         </tbody>
