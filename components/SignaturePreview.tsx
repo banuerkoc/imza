@@ -150,7 +150,7 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                           </td>
                         </tr>
                       </tbody>
-                    </tbody>
+                    </table>
                   </td>
                 </tr>
               </tbody>
