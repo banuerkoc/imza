@@ -101,7 +101,7 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                             <div style={{ fontSize: '19px', lineHeight: '24px', fontWeight: 'bold', color: dGray, paddingTop: '5px', fontFamily: 'Arial, Helvetica, sans-serif' }}>
                               {fName} <span style={{ color: bColor }}>{lName}</span>
                             </div>
-                            <div style={{ fontSize: '11px', lineHeight: '14px', color: dGray, fontWeight: 'bold', margin: '4px 0', textTransform: 'uppercase', letterSpacing: '0.5px', fontFamily: 'Arial, Helvetica, sans-serif' }}>{data.title}</div>
+                            <div style={{ fontSize: '11px', lineHeight: '14px', color: dGray, fontWeight: 'bold', margin: '4px 0', fontFamily: 'Arial, Helvetica, sans-serif', textTransform: 'none' }}>{data.title}</div>
                             <div style={{ width: '30px', height: '3px', backgroundColor: bColor, margin: '12px 0' }}></div>
                             <div style={{ fontSize: '10px', lineHeight: '14px', color: lGray, maxWidth: '160px', fontFamily: 'Arial, Helvetica, sans-serif' }}>{data.description}</div>
                           </td>
