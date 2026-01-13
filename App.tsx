@@ -125,7 +125,7 @@ const App: React.FC = () => {
                 </button>
                 {isBase64 && (
                   <span className="text-[10px] text-emerald-600 font-bold animate-pulse text-center">
-                    ✨ Görseller İşlendi (Profil: D-Crop, Logo: Orijinal)
+                    ✨ Görseller Outlook için Optimize Edildi
                   </span>
                 )}
               </div>
@@ -145,11 +145,10 @@ const App: React.FC = () => {
                 <i className="fas fa-exclamation-triangle text-xs" style={{ color: data.brandColor }}></i>
               </div>
               <div className="text-xs">
-                <p className="font-bold mb-1">Görseller Hakkında:</p>
+                <p className="font-bold mb-1">Outlook Uyumluluğu Hakkında:</p>
                 <ul className="list-disc ml-4 space-y-1 text-slate-600 font-medium">
-                  <li><b>Profil fotoğrafı</b> Outlook Mac sorununu çözmek için otomatik olarak "D" şeklinde kesilir ve PNG yapılır.</li>
-                  <li><b>Logo</b> kalitesi bozulmaması için orijinal haliyle yüklenir.</li>
-                  <li>Eğer logonuz çok büyükse (MB boyutunda) imzanızın yüklenmesi yavaşlayabilir.</li>
+                  <li><b>Profil fotoğrafı</b> yüklediğinizde, renkli çerçeve fotoğrafın içine "gömülür" (bake işlemi). Bu, Outlook'ta çerçevenin bozulmasını veya kare görünmesini %100 engeller.</li>
+                  <li>Renk değiştirdiğinizde profil fotoğrafı otomatik olarak yeni renkle tekrar oluşturulur.</li>
                 </ul>
               </div>
             </div>

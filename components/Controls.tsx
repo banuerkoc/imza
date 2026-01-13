@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { SignatureData } from '../types';
 
 interface InputGroupProps {
@@ -30,9 +30,26 @@ interface ControlsProps {
 }
 
 const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
+  const [rawFile, setRawFile] = useState<File | null>(null);
 
-  // Profil fotoğrafını "D" şeklinde kesen ve boyutlandıran fonksiyon
-  const processProfileImage = (file: File): Promise<string> => {
+  // Marka rengi değiştiğinde, eğer kullanıcı daha önce bir resim yüklediyse,
+  // resmi yeni renkle tekrar işle (Böylece sarı çerçeve yeni renk olur).
+  useEffect(() => {
+    if (rawFile && data.brandColor) {
+      processProfileImage(rawFile, data.brandColor).then((base64) => {
+        // Döngüye girmemesi için sadece base64 değişirse update etmeli, 
+        // ama basitlik için direkt güncelliyoruz. React state batching bunu halleder.
+        // Ancak sonsuz döngüyü kırmak için mevcut url ile kıyaslayabiliriz veya güvenebiliriz.
+        // Güvenli yöntem: processProfileImage her zaman yeni string üretir.
+        // App.tsx'deki handleUpdate sadece veri değişirse re-render yapar.
+        onUpdate({ photoUrl: base64 });
+      });
+    }
+    // Dependency array'e onUpdate eklemiyoruz, çünkü onUpdate değişebilir ama biz sadece renk/dosya değişince çalışsın istiyoruz.
+  }, [data.brandColor, rawFile]);
+
+  // Profil fotoğrafını ve ÇERÇEVEYİ tek bir resim haline getiren fonksiyon
+  const processProfileImage = (file: File, color: string): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -46,61 +63,89 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             return;
           }
 
-          // Hedef boyutlar (SignaturePreview'daki 85x115 oranının 2 katı kalite için)
-          const targetWidth = 170; 
-          const targetHeight = 230;
-          const radius = 100; // Sağ üst ve sağ alt köşe yarıçapı
+          // HTML Tasarımındaki oranlar (2 katı çözünürlük / Retina için)
+          // HTML: OuterWidth: 95, InnerImg: 85 (Padding Right 5, Top 5, Bottom 5)
+          // Scale 2x:
+          const scale = 2;
+          const outerWidth = 95 * scale;  // 190
+          const outerHeight = 125 * scale; // 250
+          
+          // Çerçeve Yarıçapı (HTML'de 55px -> 2x = 110px)
+          const outerRadius = 55 * scale;
 
-          canvas.width = targetWidth;
-          canvas.height = targetHeight;
+          canvas.width = outerWidth;
+          canvas.height = outerHeight;
 
-          // 1. "D" Şeklini Çiz (Clipping Mask)
+          // 1. DIŞ ÇERÇEVEYİ ÇİZ (Marka Rengi)
+          // D Şekli: Sol taraf düz, sağ taraf kavisli
           ctx.beginPath();
-          ctx.moveTo(0, 0); // Sol üst
-          ctx.lineTo(targetWidth - radius, 0); // Üst kenar (kavis başlangıcına kadar)
-          ctx.quadraticCurveTo(targetWidth, 0, targetWidth, radius); // Sağ üst köşe
-          ctx.lineTo(targetWidth, targetHeight - radius); // Sağ kenar
-          ctx.quadraticCurveTo(targetWidth, targetHeight, targetWidth - radius, targetHeight); // Sağ alt köşe
-          ctx.lineTo(0, targetHeight); // Alt kenar
-          ctx.lineTo(0, 0); // Sol kenar ve kapanış
+          ctx.moveTo(0, 0); 
+          ctx.lineTo(outerWidth - outerRadius, 0);
+          ctx.quadraticCurveTo(outerWidth, 0, outerWidth, outerRadius);
+          ctx.lineTo(outerWidth, outerHeight - outerRadius);
+          ctx.quadraticCurveTo(outerWidth, outerHeight, outerWidth - outerRadius, outerHeight);
+          ctx.lineTo(0, outerHeight);
           ctx.closePath();
-          ctx.clip(); // Bu şeklin dışını maskele
+          
+          ctx.fillStyle = color;
+          ctx.fill();
 
-          // 2. Resmi "Object-fit: Cover" mantığıyla yerleştir
-          // Resmin en/boy oranını koruyarak canvas'ı dolduracak şekilde ortala
+          // 2. RESİM ALANINI OLUŞTUR (Clipping Mask)
+          // Padding: Top 5, Right 5, Bottom 5, Left 0 (HTML'deki yapı)
+          // Scale 2x -> Top 10, Right 10, Bottom 10, Left 0
+          const padTop = 5 * scale;
+          const padRight = 5 * scale;
+          const padBottom = 5 * scale;
+          const padLeft = 0;
+
+          const innerWidth = outerWidth - padLeft - padRight;   // 190 - 0 - 10 = 180
+          const innerHeight = outerHeight - padTop - padBottom; // 250 - 10 - 10 = 230
+          const innerX = padLeft;
+          const innerY = padTop;
+          // İç köşe yarıçapı: 50px -> 2x = 100px
+          const innerRadius = 50 * scale;
+
+          ctx.beginPath();
+          ctx.moveTo(innerX, innerY);
+          ctx.lineTo(innerX + innerWidth - innerRadius, innerY);
+          ctx.quadraticCurveTo(innerX + innerWidth, innerY, innerX + innerWidth, innerY + innerRadius);
+          ctx.lineTo(innerX + innerWidth, innerY + innerHeight - innerRadius);
+          ctx.quadraticCurveTo(innerX + innerWidth, innerY + innerHeight, innerX + innerWidth - innerRadius, innerY + innerHeight);
+          ctx.lineTo(innerX, innerY + innerHeight);
+          ctx.closePath();
+          
+          // Bu alanın içini temizle veya direkt maskele
+          ctx.clip();
+
+          // 3. RESMİ ÇİZ (Object-fit: Cover mantığı)
           let sourceX = 0;
           let sourceY = 0;
           let sourceWidth = img.width;
           let sourceHeight = img.height;
           
           const imgRatio = img.width / img.height;
-          const targetRatio = targetWidth / targetHeight;
+          const targetRatio = innerWidth / innerHeight;
 
           if (imgRatio > targetRatio) {
-            // Resim daha geniş, yanlardan kırp
+            // Resim daha geniş
             sourceWidth = img.height * targetRatio;
             sourceX = (img.width - sourceWidth) / 2;
           } else {
-            // Resim daha uzun, üstten/alttan kırp
+            // Resim daha uzun
             sourceHeight = img.width / targetRatio;
             sourceY = (img.height - sourceHeight) / 2;
           }
 
-          // Arka planı temizle (Şeffaf olması için)
-          ctx.clearRect(0, 0, targetWidth, targetHeight);
-          
-          // Opsiyonel: Resim arkasına gri bir fon at (şeffaf alanlarda çizgi oluşmasını engeller)
-          ctx.fillStyle = '#eeeeee';
-          ctx.fill();
+          // Arka planı (şeffaf png ise arkası beyaz olsun diye opsiyonel, ama şeffaf bırakıyoruz)
+          // ctx.fillStyle = '#eeeeee'; 
+          // ctx.fillRect(innerX, innerY, innerWidth, innerHeight);
 
-          // Resmi çiz
           ctx.drawImage(
             img, 
             sourceX, sourceY, sourceWidth, sourceHeight, 
-            0, 0, targetWidth, targetHeight
+            innerX, innerY, innerWidth, innerHeight
           );
           
-          // PNG olarak döndür (Şeffaflığı korumak için JPEG OLMAMALI)
           const dataUrl = canvas.toDataURL('image/png');
           resolve(dataUrl);
         };
@@ -115,11 +160,13 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
     if (file) {
       try {
         if (field === 'photoUrl') {
-          // Profil fotoğrafı için özel "D" kesim işlemi
-          const processedBase64 = await processProfileImage(file);
+          // Orijinal dosyayı sakla (renk değişince tekrar kullanacağız)
+          setRawFile(file);
+          // İlk işlemeyi yap
+          const processedBase64 = await processProfileImage(file, data.brandColor);
           onUpdate({ [field]: processedBase64 });
         } else {
-          // Logo için orijinal kalite (PNG şeffaflığı ve netliği bozulmasın diye)
+          // Logo işlemi aynı kalır
           const reader = new FileReader();
           reader.onload = (ev) => {
             if (ev.target?.result) {
@@ -147,7 +194,7 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors">
               <img src={data.photoUrl || 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
-                Dosya Seç (Auto-Crop)
+                Dosya Seç (Outlook Uyumlu)
               </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'photoUrl')} />
             </div>

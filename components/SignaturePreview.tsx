@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SignatureData } from '../types';
 
@@ -27,6 +28,10 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
   };
 
   const photoSrc = data.photoUrl || 'https://placehold.co/160x220/f4f4f4/333333.png?text=Photo';
+  
+  // Eğer fotoğraf Base64 ise (kullanıcı yüklediyse), çerçeve zaten resmin içindedir.
+  // HTML ile çerçeve çizmeye gerek yoktur (Outlook uyumluluğu için).
+  const isProcessedImage = data.photoUrl.startsWith('data:');
 
   return (
     <table cellPadding="0" cellSpacing="0" style={{ width: '100%', maxWidth: '600px', fontFamily: 'Arial, Helvetica, sans-serif', borderCollapse: 'collapse', backgroundColor: bgBrokenWhite, border: 'none' }}>
@@ -56,18 +61,9 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
           </td>
 
           {/* ANA İÇERİK ALANI */}
-          {/* Padding düzenlemesi: Üst 15px, Alt 0px. Alt boşluk blokların margin'i ile sağlanacak (15px). Sonuç: Üst=15, Alt=15. */}
           <td style={{ padding: '15px 15px 0 15px', verticalAlign: 'top', border: 'none', fontSize: 0, textAlign: 'left' }}>
             
-            {/* 
-                OUTLOOK & MOBIL UYUM STRATEJİSİ:
-                - `align="left"` tabloları Outlook masaüstünde yan yana dizer (Float gibi).
-                - Mobil ekranlarda genişlik yetmediğinde ikinci tablo otomatik aşağı düşer.
-                - `display: inline-block` modern web istemcileri için eklendi.
-            */}
-
             {/* BLOCK 1: FOTOĞRAF & İSİM (SOL) */}
-            {/* margin: '0 15px 15px 0' -> Sağda 15px (desktop ayıracı), Altta 15px (mobil ayıracı ve desktop alt boşluğu) */}
             <table align="left" cellPadding="0" cellSpacing="0" style={{ display: 'inline-block', verticalAlign: 'top', width: '290px', margin: '0 15px 15px 0', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
@@ -76,25 +72,37 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                     <table cellPadding="0" cellSpacing="0" width="100%" style={{ borderCollapse: 'collapse' }}>
                       <tbody>
                         <tr>
-                          {/* D-FRAME PHOTO */}
+                          {/* FOTOĞRAF ALANI */}
                           <td width="95" style={{ verticalAlign: 'top' }}>
-                            <table cellPadding="0" cellSpacing="0" style={{ borderTopRightRadius: '55px', borderBottomRightRadius: '55px', backgroundColor: bColor }}>
-                              <tbody>
-                                <tr>
-                                  <td style={{ padding: '5px 5px 5px 0' }}>
-                                    <div style={{ width: '85px', height: '115px', borderTopRightRadius: '50px', borderBottomRightRadius: '50px', overflow: 'hidden', backgroundColor: '#eeeeee' }}>
-                                      <img 
-                                        src={photoSrc} 
-                                        width="85" 
-                                        height="115" 
-                                        style={{ display: 'block', border: 'none', objectFit: 'cover' }} 
-                                        alt="Profile" 
-                                      />
-                                    </div>
-                                  </td>
-                                </tr>
-                              </tbody>
-                            </table>
+                            {isProcessedImage ? (
+                              // OUTLOOK İÇİN GÜVENLİ MOD: Çerçeve resmin içinde, tablo stili yok.
+                              <img 
+                                src={photoSrc} 
+                                width="95" 
+                                height="125" 
+                                style={{ display: 'block', border: 'none', objectFit: 'contain' }} 
+                                alt="Profile" 
+                              />
+                            ) : (
+                              // VARSAYILAN URL MODU (HTML Çerçeve - Outlook'ta dikdörtgen görünebilir ama web'de düzgün durur)
+                              <table cellPadding="0" cellSpacing="0" style={{ borderTopRightRadius: '55px', borderBottomRightRadius: '55px', backgroundColor: bColor }}>
+                                <tbody>
+                                  <tr>
+                                    <td style={{ padding: '5px 5px 5px 0' }}>
+                                      <div style={{ width: '85px', height: '115px', borderTopRightRadius: '50px', borderBottomRightRadius: '50px', overflow: 'hidden', backgroundColor: '#eeeeee' }}>
+                                        <img 
+                                          src={photoSrc} 
+                                          width="85" 
+                                          height="115" 
+                                          style={{ display: 'block', border: 'none', objectFit: 'cover' }} 
+                                          alt="Profile" 
+                                        />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            )}
                           </td>
                           {/* İSİM BİLGİLERİ */}
                           <td style={{ paddingLeft: '10px', verticalAlign: 'top' }}>
@@ -114,7 +122,6 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
             </table>
 
             {/* BLOCK 2: İLETİŞİM (SAĞ) */}
-            {/* margin: '0 0 15px 0' -> Altta 15px (desktop alt boşluğunu tamamlamak ve mobilde en alt boşluğu sağlamak için) */}
             <table align="left" cellPadding="0" cellSpacing="0" style={{ display: 'inline-block', verticalAlign: 'top', width: '220px', margin: '0 0 15px 0', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
