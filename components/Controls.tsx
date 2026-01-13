@@ -32,28 +32,23 @@ interface ControlsProps {
 const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
   const [rawFile, setRawFile] = useState<File | null>(null);
 
-  // Marka rengi değiştiğinde, eğer kullanıcı daha önce bir resim yüklediyse,
-  // resmi yeni renkle tekrar işle (Böylece sarı çerçeve yeni renk olur).
+  // Renk değiştiğinde, elimizde ham dosya varsa resmi yeni renkle tekrar oluştur (Re-Baking)
   useEffect(() => {
     if (rawFile && data.brandColor) {
-      processProfileImage(rawFile, data.brandColor).then((base64) => {
-        // Döngüye girmemesi için sadece base64 değişirse update etmeli, 
-        // ama basitlik için direkt güncelliyoruz. React state batching bunu halleder.
-        // Ancak sonsuz döngüyü kırmak için mevcut url ile kıyaslayabiliriz veya güvenebiliriz.
-        // Güvenli yöntem: processProfileImage her zaman yeni string üretir.
-        // App.tsx'deki handleUpdate sadece veri değişirse re-render yapar.
+      processAndBakeImage(rawFile, data.brandColor).then((base64) => {
         onUpdate({ photoUrl: base64 });
       });
     }
-    // Dependency array'e onUpdate eklemiyoruz, çünkü onUpdate değişebilir ama biz sadece renk/dosya değişince çalışsın istiyoruz.
-  }, [data.brandColor, rawFile]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.brandColor]);
 
-  // Profil fotoğrafını ve ÇERÇEVEYİ tek bir resim haline getiren fonksiyon
-  const processProfileImage = (file: File, color: string): Promise<string> => {
+  // BU FONKSİYON: Çerçeve + Beyaz Boşluk + Resim hepsini tek PNG yapar.
+  const processAndBakeImage = (file: File, color: string): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
+        img.crossOrigin = "anonymous";
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -63,68 +58,74 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             return;
           }
 
-          // HTML Tasarımındaki oranlar (2 katı çözünürlük / Retina için)
-          // HTML: OuterWidth: 95, InnerImg: 85 (Padding Right 5, Top 5, Bottom 5)
-          // Scale 2x:
-          const scale = 2;
-          const outerWidth = 95 * scale;  // 190
-          const outerHeight = 125 * scale; // 250
+          // --- AYARLAR ---
+          const scale = 3; // Yüksek çözünürlük (Retina) için 3 kat büyük çalışma
+          const totalWidth = 95 * scale;  // İmzada görünecek genişlik: 95px
+          const totalHeight = 125 * scale; // İmzada görünecek yükseklik: 125px
           
-          // Çerçeve Yarıçapı (HTML'de 55px -> 2x = 110px)
+          // Dış Çerçeve Yarıçapı (Sağ köşeler)
           const outerRadius = 55 * scale;
-
-          canvas.width = outerWidth;
-          canvas.height = outerHeight;
-
-          // 1. DIŞ ÇERÇEVEYİ ÇİZ (Marka Rengi)
-          // D Şekli: Sol taraf düz, sağ taraf kavisli
-          ctx.beginPath();
-          ctx.moveTo(0, 0); 
-          ctx.lineTo(outerWidth - outerRadius, 0);
-          ctx.quadraticCurveTo(outerWidth, 0, outerWidth, outerRadius);
-          ctx.lineTo(outerWidth, outerHeight - outerRadius);
-          ctx.quadraticCurveTo(outerWidth, outerHeight, outerWidth - outerRadius, outerHeight);
-          ctx.lineTo(0, outerHeight);
-          ctx.closePath();
           
+          // Resim ile Çerçeve arasındaki beyaz boşluk (Padding)
+          const gap = 5 * scale; 
+
+          canvas.width = totalWidth;
+          canvas.height = totalHeight;
+          ctx.clearRect(0, 0, totalWidth, totalHeight);
+
+          // 1. ADIM: DIŞ ÇERÇEVEYİ ÇİZ (Renkli Zemin)
+          drawDShape(ctx, 0, 0, totalWidth, totalHeight, outerRadius);
           ctx.fillStyle = color;
           ctx.fill();
 
-          // 2. RESİM ALANINI OLUŞTUR (Clipping Mask)
-          // Padding: Top 5, Right 5, Bottom 5, Left 0 (HTML'deki yapı)
-          // Scale 2x -> Top 10, Right 10, Bottom 10, Left 0
-          const padTop = 5 * scale;
-          const padRight = 5 * scale;
-          const padBottom = 5 * scale;
-          const padLeft = 0;
-
-          const innerWidth = outerWidth - padLeft - padRight;   // 190 - 0 - 10 = 180
-          const innerHeight = outerHeight - padTop - padBottom; // 250 - 10 - 10 = 230
-          const innerX = padLeft;
-          const innerY = padTop;
-          // İç köşe yarıçapı: 50px -> 2x = 100px
-          const innerRadius = 50 * scale;
-
-          ctx.beginPath();
-          ctx.moveTo(innerX, innerY);
-          ctx.lineTo(innerX + innerWidth - innerRadius, innerY);
-          ctx.quadraticCurveTo(innerX + innerWidth, innerY, innerX + innerWidth, innerY + innerRadius);
-          ctx.lineTo(innerX + innerWidth, innerY + innerHeight - innerRadius);
-          ctx.quadraticCurveTo(innerX + innerWidth, innerY + innerHeight, innerX + innerWidth - innerRadius, innerY + innerHeight);
-          ctx.lineTo(innerX, innerY + innerHeight);
-          ctx.closePath();
+          // 2. ADIM: ORTADAKİ BEYAZ BOŞLUĞU ÇİZ (Gap)
+          // İçeriye doğru "gap" kadar küçültülmüş bir D şekli
+          const innerBgX = 0; // Sol taraf düz olduğu için X değişmez (veya gap kadar içeride mi? Tasarımda sol taraf flush görünüyor, ama resim ortalı olsun dersen gap ekle. Tasarımda sol da çerçeve var gibi.)
+          // Tasarıma bakınca: Resim çerçevenin içinde yüzüyor. Her yerden gap var.
+          const innerBgWidth = totalWidth - gap; // Sağdan gap
+          const innerBgHeight = totalHeight - (gap * 2); // Üstten ve alttan gap
           
-          // Bu alanın içini temizle veya direkt maskele
-          ctx.clip();
+          // Sol tarafın hizası: Eğer sol tarafta da sarı şerit varsa gap ekle.
+          // Görselde sol taraf düz ve sarı çerçeve var. O yüzden soldan da gap bırakalım.
+          // Düzeltme: Görselde sol tarafı sarı değil, resim sola yaslı gibi ama çerçeve D şeklinde.
+          // Güvenli yöntem: Her yerden 5px (scaled) içeride beyaz alan açmak.
+          
+          /* Beyaz zemin çizimi (Resmin arkası) */
+          drawDShape(
+            ctx, 
+            gap, // x
+            gap, // y
+            totalWidth - gap - gap, // w (Soldan ve sağdan gap) (veya sağ taraf oval)
+            totalHeight - gap - gap, // h
+            outerRadius - gap // radius da küçülmeli
+          );
+          ctx.fillStyle = '#FFFFFF'; // E-posta arka planı beyaz varsayıyoruz, boşluk rengi.
+          ctx.fill();
 
-          // 3. RESMİ ÇİZ (Object-fit: Cover mantığı)
+          // 3. ADIM: RESMİ MASKELE VE ÇİZ
+          // Önce maskeleme alanını (clip) oluştur
+          ctx.save();
+          drawDShape(
+            ctx, 
+            gap, 
+            gap, 
+            totalWidth - gap - gap, 
+            totalHeight - gap - gap, 
+            outerRadius - gap
+          );
+          ctx.clip(); // Buradan sonrası sadece bu alanın içine çizilir
+
+          // Resmi "cover" mantığıyla yerleştir
+          const drawW = totalWidth - gap - gap;
+          const drawH = totalHeight - gap - gap;
+          
           let sourceX = 0;
           let sourceY = 0;
           let sourceWidth = img.width;
           let sourceHeight = img.height;
           
           const imgRatio = img.width / img.height;
-          const targetRatio = innerWidth / innerHeight;
+          const targetRatio = drawW / drawH;
 
           if (imgRatio > targetRatio) {
             // Resim daha geniş
@@ -136,16 +137,15 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             sourceY = (img.height - sourceHeight) / 2;
           }
 
-          // Arka planı (şeffaf png ise arkası beyaz olsun diye opsiyonel, ama şeffaf bırakıyoruz)
-          // ctx.fillStyle = '#eeeeee'; 
-          // ctx.fillRect(innerX, innerY, innerWidth, innerHeight);
-
           ctx.drawImage(
             img, 
             sourceX, sourceY, sourceWidth, sourceHeight, 
-            innerX, innerY, innerWidth, innerHeight
+            gap, gap, drawW, drawH
           );
           
+          ctx.restore();
+
+          // Sonuç
           const dataUrl = canvas.toDataURL('image/png');
           resolve(dataUrl);
         };
@@ -155,18 +155,29 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
     });
   };
 
+  // Yardımcı Fonksiyon: D Şekli Çizici
+  const drawDShape = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    ctx.beginPath();
+    ctx.moveTo(x, y); // Sol Üst
+    ctx.lineTo(x + w - r, y); // Üst Kenar
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r); // Sağ Üst Köşe
+    ctx.lineTo(x + w, y + h - r); // Sağ Kenar
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); // Sağ Alt Köşe
+    ctx.lineTo(x, y + h); // Alt Kenar
+    ctx.lineTo(x, y); // Sol Kenar (Kapat)
+    ctx.closePath();
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photoUrl' | 'logoUrl') => {
     const file = e.target.files?.[0];
     if (file) {
       try {
         if (field === 'photoUrl') {
-          // Orijinal dosyayı sakla (renk değişince tekrar kullanacağız)
-          setRawFile(file);
-          // İlk işlemeyi yap
-          const processedBase64 = await processProfileImage(file, data.brandColor);
+          setRawFile(file); // Ham dosyayı sakla (renk değişimi için)
+          const processedBase64 = await processAndBakeImage(file, data.brandColor);
           onUpdate({ [field]: processedBase64 });
         } else {
-          // Logo işlemi aynı kalır
+          // Logo için standart okuma
           const reader = new FileReader();
           reader.onload = (ev) => {
             if (ev.target?.result) {
@@ -176,7 +187,7 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
           reader.readAsDataURL(file);
         }
       } catch (error) {
-        console.error("Görsel işlenirken hata oluştu:", error);
+        console.error("Hata:", error);
       }
     }
   };
@@ -194,7 +205,7 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors">
               <img src={data.photoUrl || 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
-                Dosya Seç (Outlook Uyumlu)
+                Dosya Seç (Tek Parça PNG)
               </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'photoUrl')} />
             </div>
@@ -204,7 +215,7 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors p-2">
               {data.logoUrl ? <img src={data.logoUrl} className="max-w-full max-h-full object-contain" /> : <i className="fas fa-plus text-slate-600"></i>}
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
-                Dosya Seç (Orijinal)
+                Dosya Seç
               </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'logoUrl')} />
             </div>

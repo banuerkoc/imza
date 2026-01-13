@@ -125,7 +125,7 @@ const App: React.FC = () => {
                 </button>
                 {isBase64 && (
                   <span className="text-[10px] text-emerald-600 font-bold animate-pulse text-center">
-                    ✨ Görseller Outlook için Optimize Edildi
+                    ✨ Görseller Birleştirildi (Bake Modu)
                   </span>
                 )}
               </div>
@@ -145,10 +145,11 @@ const App: React.FC = () => {
                 <i className="fas fa-exclamation-triangle text-xs" style={{ color: data.brandColor }}></i>
               </div>
               <div className="text-xs">
-                <p className="font-bold mb-1">Outlook Uyumluluğu Hakkında:</p>
+                <p className="font-bold mb-1">Mac Outlook Çözümü Aktif:</p>
                 <ul className="list-disc ml-4 space-y-1 text-slate-600 font-medium">
-                  <li><b>Profil fotoğrafı</b> yüklediğinizde, renkli çerçeve fotoğrafın içine "gömülür" (bake işlemi). Bu, Outlook'ta çerçevenin bozulmasını veya kare görünmesini %100 engeller.</li>
-                  <li>Renk değiştirdiğinizde profil fotoğrafı otomatik olarak yeni renkle tekrar oluşturulur.</li>
+                  <li><b>Resim + Çerçeve Birleştirme:</b> Resim yüklediğinizde sistem artık Sarı Çerçeveyi ve Beyaz Boşluğu resmin içine "yazar" (bake).</li>
+                  <li>Outlook artık HTML kodlarıyla uğraşmaz, sadece tek bir resim görür. Bu sayede çerçeve %100 düzgün görünür.</li>
+                  <li>Renk değiştirirseniz resim otomatik olarak yeniden oluşturulur.</li>
                 </ul>
               </div>
             </div>
