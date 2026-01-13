@@ -29,8 +29,9 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
 
   const photoSrc = data.photoUrl || 'https://placehold.co/160x220/f4f4f4/333333.png?text=Photo';
   
-  // Eğer kullanıcı resim yüklediyse (Base64), bu zaten çerçevesiyle birleşmiş tek bir PNG'dir.
-  // Bu durumda HTML ile ekstradan border/background çizmemize GEREK YOKTUR.
+  // Eğer görsel Base64 ise (kullanıcı yüklediyse), bu görsel artık
+  // Sarı Çerçeve + Beyaz Boşluk + Profil Resmini tek parça halinde içerir.
+  // HTML ile şekil vermeye çalışmak Outlook'u bozar.
   const isMergedImage = data.photoUrl.startsWith('data:');
 
   return (
@@ -73,21 +74,21 @@ const SignaturePreview: React.FC<SignaturePreviewProps> = ({ data }) => {
                       <tbody>
                         <tr>
                           {/* FOTOĞRAF ALANI */}
-                          <td width="95" style={{ verticalAlign: 'top' }}>
+                          <td width="95" style={{ verticalAlign: 'top', padding: 0 }}>
                             {isMergedImage ? (
-                              // TEK PARÇA RESİM MODU (Outlook Dostu)
-                              // Resim zaten "D" şeklinde, sarı çerçeveli ve beyaz boşluklu olarak geliyor.
-                              // Sadece img tagi yeterli.
+                              // TEK PARÇA GÖRSEL MODU (OUTLOOK UYUMLU)
+                              // Arka plan rengi, çerçeve ve resim tek bir PNG içindedir.
+                              // Kenarları #FAFAFA (imza zemin rengi) ile doldurulduğu için
+                              // Outlook dikdörtgen gösterse bile köşeler görünmez.
                               <img 
                                 src={photoSrc} 
                                 width="95" 
                                 height="125" 
-                                style={{ display: 'block', border: 'none', objectFit: 'contain' }} 
+                                style={{ display: 'block', border: 'none' }} 
                                 alt="Profile" 
                               />
                             ) : (
-                              // VARSAYILAN URL MODU (HTML Çerçeve)
-                              // Kullanıcı resim yüklemediyse ve link verdiyse eski usül deneriz.
+                              // VARSAYILAN URL MODU (Eğer kullanıcı dosya yüklemediyse)
                               <table cellPadding="0" cellSpacing="0" style={{ borderTopRightRadius: '55px', borderBottomRightRadius: '55px', backgroundColor: bColor }}>
                                 <tbody>
                                   <tr>

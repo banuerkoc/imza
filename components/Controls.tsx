@@ -32,7 +32,7 @@ interface ControlsProps {
 const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
   const [rawFile, setRawFile] = useState<File | null>(null);
 
-  // Renk değiştiğinde, elimizde ham dosya varsa resmi yeni renkle tekrar oluştur (Re-Baking)
+  // Renk değiştiğinde yeniden render et
   useEffect(() => {
     if (rawFile && data.brandColor) {
       processAndBakeImage(rawFile, data.brandColor).then((base64) => {
@@ -42,7 +42,6 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.brandColor]);
 
-  // BU FONKSİYON: Çerçeve + Beyaz Boşluk + Resim hepsini tek PNG yapar.
   const processAndBakeImage = (file: File, color: string): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -59,95 +58,71 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
           }
 
           // --- AYARLAR ---
-          const scale = 3; // Yüksek çözünürlük (Retina) için 3 kat büyük çalışma
-          const totalWidth = 95 * scale;  // İmzada görünecek genişlik: 95px
-          const totalHeight = 125 * scale; // İmzada görünecek yükseklik: 125px
+          const scale = 4; // Çok yüksek kalite
+          const totalWidth = 95 * scale;
+          const totalHeight = 125 * scale;
           
-          // Dış Çerçeve Yarıçapı (Sağ köşeler)
           const outerRadius = 55 * scale;
-          
-          // Resim ile Çerçeve arasındaki beyaz boşluk (Padding)
           const gap = 5 * scale; 
 
           canvas.width = totalWidth;
           canvas.height = totalHeight;
-          ctx.clearRect(0, 0, totalWidth, totalHeight);
 
-          // 1. ADIM: DIŞ ÇERÇEVEYİ ÇİZ (Renkli Zemin)
+          // 1. ADIM: ZEMİNİ İMZA RENGİNE BOYA (#FAFAFA)
+          // Bu adım Outlook'ta dikdörtgen görünme sorununu çözer. 
+          // Şeffaf alan bırakmak yerine imza zemin rengiyle dolduruyoruz.
+          // Böylece resim dikdörtgen olsa bile köşeler zeminle kaynaşır.
+          ctx.fillStyle = '#FAFAFA'; 
+          ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+          // 2. ADIM: RENKLİ DIŞ ÇERÇEVE
           drawDShape(ctx, 0, 0, totalWidth, totalHeight, outerRadius);
           ctx.fillStyle = color;
           ctx.fill();
 
-          // 2. ADIM: ORTADAKİ BEYAZ BOŞLUĞU ÇİZ (Gap)
-          // İçeriye doğru "gap" kadar küçültülmüş bir D şekli
-          const innerBgX = 0; // Sol taraf düz olduğu için X değişmez (veya gap kadar içeride mi? Tasarımda sol taraf flush görünüyor, ama resim ortalı olsun dersen gap ekle. Tasarımda sol da çerçeve var gibi.)
-          // Tasarıma bakınca: Resim çerçevenin içinde yüzüyor. Her yerden gap var.
-          const innerBgWidth = totalWidth - gap; // Sağdan gap
-          const innerBgHeight = totalHeight - (gap * 2); // Üstten ve alttan gap
-          
-          // Sol tarafın hizası: Eğer sol tarafta da sarı şerit varsa gap ekle.
-          // Görselde sol taraf düz ve sarı çerçeve var. O yüzden soldan da gap bırakalım.
-          // Düzeltme: Görselde sol tarafı sarı değil, resim sola yaslı gibi ama çerçeve D şeklinde.
-          // Güvenli yöntem: Her yerden 5px (scaled) içeride beyaz alan açmak.
-          
-          /* Beyaz zemin çizimi (Resmin arkası) */
+          // 3. ADIM: BEYAZ BOŞLUK (GAP)
           drawDShape(
             ctx, 
-            gap, // x
-            gap, // y
-            totalWidth - gap - gap, // w (Soldan ve sağdan gap) (veya sağ taraf oval)
-            totalHeight - gap - gap, // h
-            outerRadius - gap // radius da küçülmeli
+            gap, gap, 
+            totalWidth - gap * 2, 
+            totalHeight - gap * 2, 
+            outerRadius - gap
           );
-          ctx.fillStyle = '#FFFFFF'; // E-posta arka planı beyaz varsayıyoruz, boşluk rengi.
+          ctx.fillStyle = '#FFFFFF';
           ctx.fill();
 
-          // 3. ADIM: RESMİ MASKELE VE ÇİZ
-          // Önce maskeleme alanını (clip) oluştur
+          // 4. ADIM: RESMİ MASKELE VE ÇİZ
           ctx.save();
           drawDShape(
             ctx, 
-            gap, 
-            gap, 
-            totalWidth - gap - gap, 
-            totalHeight - gap - gap, 
+            gap, gap, 
+            totalWidth - gap * 2, 
+            totalHeight - gap * 2, 
             outerRadius - gap
           );
-          ctx.clip(); // Buradan sonrası sadece bu alanın içine çizilir
+          ctx.clip(); // Maskeleme
 
-          // Resmi "cover" mantığıyla yerleştir
-          const drawW = totalWidth - gap - gap;
-          const drawH = totalHeight - gap - gap;
+          // Resmi yerleştir (Cover mantığı)
+          const drawW = totalWidth - gap * 2;
+          const drawH = totalHeight - gap * 2;
           
-          let sourceX = 0;
-          let sourceY = 0;
-          let sourceWidth = img.width;
-          let sourceHeight = img.height;
-          
+          let sourceX = 0, sourceY = 0, sourceWidth = img.width, sourceHeight = img.height;
           const imgRatio = img.width / img.height;
           const targetRatio = drawW / drawH;
 
           if (imgRatio > targetRatio) {
-            // Resim daha geniş
             sourceWidth = img.height * targetRatio;
             sourceX = (img.width - sourceWidth) / 2;
           } else {
-            // Resim daha uzun
             sourceHeight = img.width / targetRatio;
             sourceY = (img.height - sourceHeight) / 2;
           }
 
-          ctx.drawImage(
-            img, 
-            sourceX, sourceY, sourceWidth, sourceHeight, 
-            gap, gap, drawW, drawH
-          );
-          
+          ctx.drawImage(img, sourceX, sourceY, sourceWidth, sourceHeight, gap, gap, drawW, drawH);
           ctx.restore();
 
-          // Sonuç
-          const dataUrl = canvas.toDataURL('image/png');
-          resolve(dataUrl);
+          // Çıktıyı al
+          resolve(canvas.toDataURL('image/png'));
         };
         img.src = e.target?.result as string;
       };
@@ -155,39 +130,29 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
     });
   };
 
-  // Yardımcı Fonksiyon: D Şekli Çizici
   const drawDShape = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
     ctx.beginPath();
-    ctx.moveTo(x, y); // Sol Üst
-    ctx.lineTo(x + w - r, y); // Üst Kenar
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r); // Sağ Üst Köşe
-    ctx.lineTo(x + w, y + h - r); // Sağ Kenar
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); // Sağ Alt Köşe
-    ctx.lineTo(x, y + h); // Alt Kenar
-    ctx.lineTo(x, y); // Sol Kenar (Kapat)
+    ctx.moveTo(x, y); 
+    ctx.lineTo(x + w - r, y); 
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r); 
+    ctx.lineTo(x + w, y + h - r); 
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h); 
+    ctx.lineTo(x, y + h); 
+    ctx.lineTo(x, y); 
     ctx.closePath();
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'photoUrl' | 'logoUrl') => {
     const file = e.target.files?.[0];
     if (file) {
-      try {
-        if (field === 'photoUrl') {
-          setRawFile(file); // Ham dosyayı sakla (renk değişimi için)
-          const processedBase64 = await processAndBakeImage(file, data.brandColor);
-          onUpdate({ [field]: processedBase64 });
-        } else {
-          // Logo için standart okuma
-          const reader = new FileReader();
-          reader.onload = (ev) => {
-            if (ev.target?.result) {
-              onUpdate({ [field]: ev.target.result as string });
-            }
-          };
-          reader.readAsDataURL(file);
-        }
-      } catch (error) {
-        console.error("Hata:", error);
+      if (field === 'photoUrl') {
+        setRawFile(file);
+        const processedBase64 = await processAndBakeImage(file, data.brandColor);
+        onUpdate({ [field]: processedBase64 });
+      } else {
+        const reader = new FileReader();
+        reader.onload = (ev) => ev.target?.result && onUpdate({ [field]: ev.target.result as string });
+        reader.readAsDataURL(file);
       }
     }
   };
@@ -203,9 +168,9 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
           <div className="flex flex-col gap-2">
             <label className="text-[10px] font-bold text-slate-500 uppercase">Profil Resmi</label>
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors">
-              <img src={data.photoUrl || 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-cover" />
+              <img src={data.photoUrl && data.photoUrl.startsWith('data:') ? data.photoUrl : 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-contain bg-[#FAFAFA]" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
-                Dosya Seç (Tek Parça PNG)
+                Dosya Seç (Tam Birleştirme)
               </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'photoUrl')} />
             </div>
@@ -222,8 +187,8 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
           </div>
         </div>
 
-        <InputGroup label="Fotoğraf Linki (URL)" name="photoUrl" value={data.photoUrl.startsWith('data:') ? '' : data.photoUrl} onUpdate={onUpdate} placeholder="https://..." />
-        <InputGroup label="Logo Linki (URL)" name="logoUrl" value={data.logoUrl.startsWith('data:') ? '' : data.logoUrl} onUpdate={onUpdate} placeholder="https://..." />
+        <InputGroup label="Fotoğraf Linki (URL)" name="photoUrl" value={data.photoUrl.startsWith('data:') ? 'Görsel işlendi (Base64)' : data.photoUrl} onUpdate={onUpdate} placeholder="https://..." />
+        <InputGroup label="Logo Linki (URL)" name="logoUrl" value={data.logoUrl.startsWith('data:') ? 'Görsel işlendi (Base64)' : data.logoUrl} onUpdate={onUpdate} placeholder="https://..." />
       </section>
 
       <section>
