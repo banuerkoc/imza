@@ -31,42 +31,78 @@ interface ControlsProps {
 
 const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
 
-  // Görseli yeniden boyutlandıran (Resize) yardımcı fonksiyon
-  const resizeImage = (file: File): Promise<string> => {
+  // Profil fotoğrafını "D" şeklinde kesen ve boyutlandıran fonksiyon
+  const processProfileImage = (file: File): Promise<string> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 180; // İstenilen maksimum genişlik
-          
-          let width = img.width;
-          let height = img.height;
-
-          // En-boy oranını koruyarak boyutlandırma
-          if (width > MAX_WIDTH) {
-            height = (MAX_WIDTH / width) * height;
-            width = MAX_WIDTH;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
           const ctx = canvas.getContext('2d');
-          if (ctx) {
-            // Arka planı beyaz yap (PNG transparanlığı JPEG'e dönüşürken siyah olmasın diye)
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, width, height);
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // JPEG formatında ve 0.85 kalitesinde sıkıştırılmış base64 döndür
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-            resolve(dataUrl);
-          } else {
-            // Fallback: Canvas çalışmazsa orijinalini döndür
+          
+          if (!ctx) {
             resolve(e.target?.result as string);
+            return;
           }
+
+          // Hedef boyutlar (SignaturePreview'daki 85x115 oranının 2 katı kalite için)
+          const targetWidth = 170; 
+          const targetHeight = 230;
+          const radius = 100; // Sağ üst ve sağ alt köşe yarıçapı
+
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+
+          // 1. "D" Şeklini Çiz (Clipping Mask)
+          ctx.beginPath();
+          ctx.moveTo(0, 0); // Sol üst
+          ctx.lineTo(targetWidth - radius, 0); // Üst kenar (kavis başlangıcına kadar)
+          ctx.quadraticCurveTo(targetWidth, 0, targetWidth, radius); // Sağ üst köşe
+          ctx.lineTo(targetWidth, targetHeight - radius); // Sağ kenar
+          ctx.quadraticCurveTo(targetWidth, targetHeight, targetWidth - radius, targetHeight); // Sağ alt köşe
+          ctx.lineTo(0, targetHeight); // Alt kenar
+          ctx.lineTo(0, 0); // Sol kenar ve kapanış
+          ctx.closePath();
+          ctx.clip(); // Bu şeklin dışını maskele
+
+          // 2. Resmi "Object-fit: Cover" mantığıyla yerleştir
+          // Resmin en/boy oranını koruyarak canvas'ı dolduracak şekilde ortala
+          let sourceX = 0;
+          let sourceY = 0;
+          let sourceWidth = img.width;
+          let sourceHeight = img.height;
+          
+          const imgRatio = img.width / img.height;
+          const targetRatio = targetWidth / targetHeight;
+
+          if (imgRatio > targetRatio) {
+            // Resim daha geniş, yanlardan kırp
+            sourceWidth = img.height * targetRatio;
+            sourceX = (img.width - sourceWidth) / 2;
+          } else {
+            // Resim daha uzun, üstten/alttan kırp
+            sourceHeight = img.width / targetRatio;
+            sourceY = (img.height - sourceHeight) / 2;
+          }
+
+          // Arka planı temizle (Şeffaf olması için)
+          ctx.clearRect(0, 0, targetWidth, targetHeight);
+          
+          // Opsiyonel: Resim arkasına gri bir fon at (şeffaf alanlarda çizgi oluşmasını engeller)
+          ctx.fillStyle = '#eeeeee';
+          ctx.fill();
+
+          // Resmi çiz
+          ctx.drawImage(
+            img, 
+            sourceX, sourceY, sourceWidth, sourceHeight, 
+            0, 0, targetWidth, targetHeight
+          );
+          
+          // PNG olarak döndür (Şeffaflığı korumak için JPEG OLMAMALI)
+          const dataUrl = canvas.toDataURL('image/png');
+          resolve(dataUrl);
         };
         img.src = e.target?.result as string;
       };
@@ -79,9 +115,9 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
     if (file) {
       try {
         if (field === 'photoUrl') {
-          // Profil fotoğrafı için resize ve optimizasyon (Gmail limitleri için)
-          const resizedBase64 = await resizeImage(file);
-          onUpdate({ [field]: resizedBase64 });
+          // Profil fotoğrafı için özel "D" kesim işlemi
+          const processedBase64 = await processProfileImage(file);
+          onUpdate({ [field]: processedBase64 });
         } else {
           // Logo için orijinal kalite (PNG şeffaflığı ve netliği bozulmasın diye)
           const reader = new FileReader();
@@ -111,7 +147,7 @@ const Controls: React.FC<ControlsProps> = ({ data, onUpdate }) => {
             <div className="relative group h-20 bg-slate-800 rounded-xl border border-dashed border-slate-700 overflow-hidden flex items-center justify-center hover:border-[#FDCD1F] transition-colors">
               <img src={data.photoUrl || 'https://placehold.co/100x100/333/666?text=?'} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[8px] text-white font-bold text-center p-2 uppercase cursor-pointer">
-                Dosya Seç (Oto-Resize)
+                Dosya Seç (Auto-Crop)
               </div>
               <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="image/*" onChange={(e) => handleFileUpload(e, 'photoUrl')} />
             </div>

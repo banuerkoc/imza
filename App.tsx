@@ -125,7 +125,7 @@ const App: React.FC = () => {
                 </button>
                 {isBase64 && (
                   <span className="text-[10px] text-emerald-600 font-bold animate-pulse text-center">
-                    ✨ Görseller İşlendi (Profil: Optimize, Logo: Orijinal)
+                    ✨ Görseller İşlendi (Profil: D-Crop, Logo: Orijinal)
                   </span>
                 )}
               </div>
@@ -147,8 +147,8 @@ const App: React.FC = () => {
               <div className="text-xs">
                 <p className="font-bold mb-1">Görseller Hakkında:</p>
                 <ul className="list-disc ml-4 space-y-1 text-slate-600 font-medium">
-                  <li><b>Profil fotoğrafı</b> otomatik olarak 180px genişliğe küçültülür (Base64 optimizasyonu).</li>
-                  <li><b>Logo</b> dosyanızın kalitesi ve şeffaflığı korunması için orijinal haliyle yüklenir.</li>
+                  <li><b>Profil fotoğrafı</b> Outlook Mac sorununu çözmek için otomatik olarak "D" şeklinde kesilir ve PNG yapılır.</li>
+                  <li><b>Logo</b> kalitesi bozulmaması için orijinal haliyle yüklenir.</li>
                   <li>Eğer logonuz çok büyükse (MB boyutunda) imzanızın yüklenmesi yavaşlayabilir.</li>
                 </ul>
               </div>
